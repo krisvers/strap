@@ -6,74 +6,75 @@ boot:
 	mov al, 0x03
 	int 0x10
 
-	mov al, 'B'
-	mov ah, 0x0F
-	call putc
+	mov bx, 0x07C0
+	mov es, bx
+	call printsector
 
+	jmp $
+
+error:
 	mov si, STR_ERR
 	mov ah, 0x02
 	call puts
 
 	jmp $
 
-puts:
-	.loop:
-		lodsb
-
-		test al, al
-		jz .done
-
-		call putc
-		jmp .loop
-
-.done:
-	ret
-
-putc:
-	push es
+; es = segment
+printsector:
 	push ax
 	push bx
 	push cx
-	push dx
 
-	mov bx, [VIDEO_SEG]
-	mov es, bx
-	mov bx, [VIDEO_OFF]
+	mov ah, 0x0F
+	xor bx, bx
 
-	cmp al, 0x0A
-	jne .skip
+	.loop:
+		mov al, [es:bx]
+		call putbyte
 
-	mov ax, bx
-	mov cx, 0xA0
-	div cx
-	add bx, 0xA0
-	sub bx, dx
+		inc bx
 
-	cmp bx, 0x50 * 0x14 * 0x02
-	jne .done
+		push ax
 
-	xor bx, bx 
-	jmp .done
+		mov ax, bx
+		mov cl, 0x20
+		div cl
+		test ah, ah
+		jz .skip2
 
-.skip:
-	mov [es:bx], al
-	inc bx
-	mov [es:bx], ah
-	inc bx
+		mov ax, bx
+		mov cl, 0x02
+		div cl
+		test ah, ah
+		jnz .skip1
 
-.done:
-	mov [VIDEO_OFF], bx
+		mov al, ' '
+		call putc
 
-	pop dx
+	.skip1:
+		mov ax, bx
+		mov cl, 0x10
+		div cl
+		test ah, ah
+		jnz .skip2
+
+		mov al, ' '
+		call putc
+
+	.skip2:
+		pop ax
+
+		cmp bx, 0x0200
+		jl .loop
+
 	pop cx
 	pop bx
 	pop ax
-	pop es
 	ret
 
-VIDEO_SEG: dw 0xB800
-VIDEO_OFF: dw 0x0000
-STR_ERR: db "Error", 0x0A, "Test", 0x00
+%include "stdio.asm"
+
+STR_ERR: db "Error", 0x00
 
 times 510-($-$$) db 0
 dw 0xAA55
