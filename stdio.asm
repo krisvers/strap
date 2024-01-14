@@ -51,6 +51,8 @@ putbyte:
     pop ax
     ret
 
+; al = character
+; ah = color
 putc:
 	push es
 	push bx
@@ -69,10 +71,6 @@ putc:
 	add bx, 0xA0
 	sub bx, dx
 
-	cmp bx, 0x50 * 0x14 * 0x02
-	jne .done
-
-	xor bx, bx 
 	jmp .done
 
 .skip:
@@ -82,11 +80,22 @@ putc:
 	inc bx
 
 .done:
+	cmp bx, 0x0FA0
+	jl .done2
+
+	xor bx, bx
+
+.done2:
 	mov [VIDEO_OFF], bx
 
 	pop cx
 	pop bx
 	pop es
+	ret
+
+resetcursor:
+	mov word [VIDEO_OFF], 0
+
 	ret
 
 VIDEO_SEG: dw 0xB800
