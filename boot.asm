@@ -40,11 +40,10 @@ boot:
 		mov dx, bx
 		call printsector
 
-		push bx
 		mov bx, es
 		mov ah, 0x0F
 		call putword
-		pop bx
+		mov bx, dx
 		mov al, ':'
 		call putc
 		call putword
@@ -109,7 +108,7 @@ boot:
 		mov dl, [DISKDL]
 		int 0x13
 
-		jnc .loop
+		jnc .skip_set
 
 		mov al, 'w'
 		jmp error
@@ -127,6 +126,18 @@ boot:
 		inc bx
 
 	.skip_right:
+		cmp ah, 0x48
+		jne .skip_down
+
+		sub bx, 0x20
+
+	.skip_down:
+		cmp ah, 0x50
+		jne .skip_up
+
+		add bx, 0x20
+
+	.skip_up:
 		cmp al, 0x30
 		jl .skip_num
 
@@ -166,9 +177,19 @@ boot:
 		xor ax, ax
 
 	.skip_set:
-		jmp .loop
+		cmp bx, 0x01FF
+		jng .skip_oobdn
 
-	hlt
+		mov bx, 0x01FF
+
+	.skip_oobdn:
+		cmp bx, 0x0000
+		jg .reloop
+
+		xor bx, bx
+
+	.reloop:
+		jmp .loop
 
 error:
 	mov ah, 0xCF

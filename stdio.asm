@@ -1,16 +1,3 @@
-puts:
-	.loop:
-		lodsb
-
-		test al, al
-		jz .done
-
-		call putc
-		jmp .loop
-
-.done:
-	ret
-
 ; ah = color
 ; bx = word number
 putword:
